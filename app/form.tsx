@@ -13,6 +13,8 @@ import { type DefaultValue } from '@conform-to/dom'
 import { parseWithZod } from '@conform-to/zod';
 import { todosSchema, loginSchema, createSignupSchema } from '@/app/schema';
 import { z } from 'zod';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 function Button(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
 	const { pending } = useFormStatus();
@@ -34,6 +36,16 @@ export function TodoForm({ defaultValue }: { defaultValue: DefaultValue<z.output
 	const tasks = fields.tasks.getFieldList();
 
 	const status = lastResult?.status
+
+	// attempted solution
+	// this effect will ensure that the page data is refetched so defaultValue will reflect the new data (still doesn't work)
+
+	// const router = useRouter()
+	// useEffect(() => {
+	// 	if(status === 'success') {
+	// 		router.refresh()
+	// 	}
+	// }, [status, router])
 
 	return (
 		<form action={action} {...getFormProps(form)}>
