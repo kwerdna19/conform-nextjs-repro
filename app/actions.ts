@@ -17,10 +17,22 @@ export async function login(prevState: unknown, formData: FormData) {
 	redirect(`/?value=${JSON.stringify(submission.value)}`);
 }
 
-type Task = z.infer<typeof todosSchema>['tasks'][0]
+type Data = z.infer<typeof todosSchema>
 
-let title = ''
-let tasks: Task[] = []
+type Task = Data['tasks'][number]
+
+let db: {
+	tasks: Task[],
+	title: string
+} = {
+	tasks: [],
+	title: ''
+}
+
+export const getData = async () => {
+	await new Promise(res => setTimeout(res, 1000))
+	return db
+}
 
 export async function createTodos(prevState: unknown, formData: FormData) {
 	const submission = parseWithZod(formData, {
@@ -31,17 +43,15 @@ export async function createTodos(prevState: unknown, formData: FormData) {
 		return submission.reply();
 	}
 
-	title = submission.value.title
-	tasks = []
-	submission.value.tasks.forEach(t => tasks.push(t))
+	console.log(submission.value)
 
+	await new Promise(res => setTimeout(res, 1000))
+
+	db.tasks = [...submission.value.tasks]
+	db.title = submission.value.title
+
+	// redirect(`/?value=${JSON.stringify(submission.value)}`);
 	return submission.reply();
-}
-
-export async function getTodos() {
-	return {
-		title, tasks
-	}
 }
 
 export async function signup(prevState: unknown, formData: FormData) {

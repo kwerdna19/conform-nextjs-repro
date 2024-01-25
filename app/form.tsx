@@ -4,17 +4,16 @@ import { useFormState, useFormStatus } from 'react-dom';
 import { login, signup, createTodos } from '@/app/actions';
 import {
 	useForm,
-	control,
 	getFormProps,
 	getInputProps,
 	getFieldsetProps,
+	FieldMetadata
 } from '@conform-to/react';
-import { type DefaultValue } from '@conform-to/dom'
 import { parseWithZod } from '@conform-to/zod';
 import { todosSchema, loginSchema, createSignupSchema } from '@/app/schema';
+import { useInputControl } from '@conform-to/react';
 import { z } from 'zod';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+
 
 function Button(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
 	const { pending } = useFormStatus();
@@ -22,11 +21,26 @@ function Button(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
 	return <button {...props} disabled={pending || props.disabled} />;
 }
 
-export function TodoForm({ defaultValue }: { defaultValue: DefaultValue<z.output<typeof todosSchema>>}) {
 
+
+function CustomSelect({ field }: { field: FieldMetadata<string> }) {
+  const control = useInputControl(field);
+
+  return (
+    <select
+      value={control.value}
+      onChange={(e) => control.change(e.target.value)}
+    >
+			<option value="">- Select -</option>
+			{['test a', 'test b', 'test c'].map(o => <option key={o} value={o}>{o}</option>)}
+		</select>
+  );
+}
+
+export function TodoForm({ data }: { data: z.infer<typeof todosSchema> }) {
 	const [lastResult, action] = useFormState(createTodos, undefined);
 	const [form, fields] = useForm({
-		defaultValue,
+		defaultValue: data,
 		lastResult,
 		onValidate({ formData }) {
 			return parseWithZod(formData, { schema: todosSchema });
@@ -35,25 +49,13 @@ export function TodoForm({ defaultValue }: { defaultValue: DefaultValue<z.output
 	});
 	const tasks = fields.tasks.getFieldList();
 
-	const status = lastResult?.status
-
-	// attempted solution
-	// this effect will ensure that the page data is refetched so defaultValue will reflect the new data (still doesn't work)
-
-	// const router = useRouter()
-	// useEffect(() => {
-	// 	if(status === 'success') {
-	// 		router.refresh()
-	// 	}
-	// }, [status, router])
-
 	return (
 		<form action={action} {...getFormProps(form)}>
 			<div>
 				<label>Title</label>
 				<input
 					className={!fields.title.valid ? 'error' : ''}
-					{...getInputProps(fields.title)}
+					{...getInputProps(fields.title, { type: 'text' })}
 					key={fields.title.key}
 				/>
 				<div>{fields.title.errors}</div>
@@ -66,10 +68,10 @@ export function TodoForm({ defaultValue }: { defaultValue: DefaultValue<z.output
 				return (
 					<fieldset key={task.key} {...getFieldsetProps(task)}>
 						<div>
-							<label>Task #${index + 1}</label>
+							<label>Task #{index + 1}</label>
 							<input
 								className={!taskFields.content.valid ? 'error' : ''}
-								{...getInputProps(taskFields.content)}
+								{...getInputProps(taskFields.content, { type: 'text' })}
 								key={taskFields.content.key}
 							/>
 							<div>{taskFields.content.errors}</div>
@@ -86,58 +88,42 @@ export function TodoForm({ defaultValue }: { defaultValue: DefaultValue<z.output
 								/>
 							</label>
 						</div>
+						<div>
+							<CustomSelect key={taskFields.type.key} field={taskFields.type} />
+						</div>
 						<Button
-							{...form.getControlButtonProps(
-								control.remove({ name: fields.tasks.name, index }),
-							)}
+							{...form.remove.getButtonProps({
+								name: fields.tasks.name,
+								index,
+							})}
 						>
 							Delete
 						</Button>
 						<Button
-							{...form.getControlButtonProps(
-								control.reorder({
-									name: fields.tasks.name,
-									from: index,
-									to: 0,
-								}),
-							)}
+							{...form.reorder.getButtonProps({
+								name: fields.tasks.name,
+								from: index,
+								to: 0,
+							})}
 						>
 							Move to top
 						</Button>
 						<Button
-							{...form.getControlButtonProps(
-								control.replace({ name: task.name, value: { content: '' } }),
-							)}
+							{...form.update.getButtonProps({
+								name: task.name,
+								value: { content: '' },
+							})}
 						>
 							Clear
 						</Button>
 					</fieldset>
 				);
 			})}
-			<Button
-				{...form.getControlButtonProps(
-					control.insert({ name: fields.tasks.name }),
-				)}
-			>
+			<Button {...form.insert.getButtonProps({ name: fields.tasks.name })}>
 				Add task
 			</Button>
 			<hr />
-			<div>
-				Dirty: {form.dirty ? 'True' : 'False'}
-			</div>
-			<div>
-				form.status: {form.status ?? 'undefined'}
-			</div>
-			<div>default value:</div>
-			<pre>{JSON.stringify(defaultValue, null, 2)}</pre>
-
-			<div>form.value:</div>
-			{form.value ? <pre>{JSON.stringify(form.value, null, 2)}</pre> : <div>undefined</div>}
-
-			<div>lastResult:</div>
-			{lastResult ? <pre>{JSON.stringify(lastResult, null, 2)}</pre> : <div>undefined</div>}
-			<Button disabled={!form.dirty}>Save</Button>
-			<Button  {...form.getControlButtonProps(control.reset())}>Reset</Button>
+			<Button>Save</Button>
 		</form>
 	);
 }
@@ -163,7 +149,7 @@ export function LoginForm() {
 				<label>Email</label>
 				<input
 					className={!fields.email.valid ? 'error' : ''}
-					{...getInputProps(fields.email)}
+					{...getInputProps(fields.email, { type: 'text' })}
 					key={fields.email.key}
 				/>
 				<div>{fields.email.errors}</div>
@@ -209,7 +195,7 @@ export function SignupForm() {
 				<div>Username</div>
 				<input
 					className={!fields.username.valid ? 'error' : ''}
-					{...getInputProps(fields.username)}
+					{...getInputProps(fields.username, { type: 'text' })}
 					key={fields.username.key}
 				/>
 				<div>{fields.username.errors}</div>

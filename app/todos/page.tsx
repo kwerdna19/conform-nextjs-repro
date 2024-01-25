@@ -1,13 +1,9 @@
 import { TodoForm } from '@/app/form';
-import { getTodos } from '../actions';
-
-export const dynamic = 'force-dynamic'
+import { getData } from '../actions';
 
 export default async function Todos() {
 
-	const todos = await getTodos()
+	const data = await getData()
 
-	console.log('page component', todos)
-
-	return <TodoForm defaultValue={todos} />;
+	return <TodoForm data={data} />;
 }
